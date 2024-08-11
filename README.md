@@ -47,68 +47,143 @@ Package | Version
 <a name="installation"></a>
 ## Installation
 
-> **Warning**
-> Make sure to follow the requirements first.
 
-Here is how you can run the project locally:
-1. Clone this repo
-    ```sh
-    git clone https://github.com/josuapsianturi/velflix.git
-    ```
+To deploy your Laravel project using Nginx, MySQL, and an SSL certificate on an Ubuntu server, and then upload a README file to your GitHub repository, follow these steps:
 
-1. Go into the project root directory
-    ```sh
-    cd velflix
-    ```
+### 1. **Set Up Your Server**
+- **Update your server:**
+  ```bash
+  sudo apt update && sudo apt upgrade -y
+  ```
 
-1. Copy .env.example file to .env file
-    ```sh
-    cp .env.example .env
-    ```
-1. Create database `velflix` (you can change database name)
+- **Install necessary packages:**
+  ```bash
+  sudo apt install nginx mysql-server php-fpm php-mysql git -y
+  ```
 
-1. Create account and get an API key themoviedb [ here](https://www.themoviedb.org/settings/api). Make sure to copy `API Read Access Token (v4 auth)`.
+- **Secure MySQL:**
+  ```bash
+  sudo mysql_secure_installation
+  ```
+  Follow the prompts to set a root password, remove anonymous users, disallow root login remotely, and remove the test database.
 
-1. Go to `.env` file 
-    - set database credentials (`DB_DATABASE=velflix`, `DB_USERNAME=root`, `DB_PASSWORD=`)
-    - paste `TMDB_TOKEN=(your API key)` 
-    > Make sure to follow your database username and password
+### 2. **Set Up MySQL Database**
+- **Login to MySQL:**
+  ```bash
+  sudo mysql -u root -p
+  ```
+  
+- **Create a database and user for your Laravel project:**
+  ```sql
+  CREATE DATABASE laravel_db;
+  CREATE USER 'laravel_user'@'localhost' IDENTIFIED BY 'password';
+  GRANT ALL PRIVILEGES ON laravel_db.* TO 'laravel_user'@'localhost';
+  FLUSH PRIVILEGES;
+  EXIT;
+  ```
 
-1. Install PHP dependencies 
-    ```sh
-    composer install
-    ```
+### 3. **Set Up Laravel**
+- **Clone your Laravel project:**
+  ```bash
+  cd /var/www/html
+  sudo git clone https://github.com/yourusername/your-laravel-project.git
+  cd your-laravel-project
+  ```
 
-1. Generate key 
-    ```sh
-    php artisan key:generate
-    ```
+- **Install Composer dependencies:**
+  ```bash
+  sudo apt install composer -y
+  composer install
+  ```
 
-1. install front-end dependencies
-    ```sh
-    npm install && npm run build
-    ```
+- **Set up environment file:**
+  ```bash
+  cp .env.example .env
+  nano .env
+  ```
+  Update the `.env` file with your database and other configuration details:
+  ```env
+  DB_DATABASE=laravel_db
+  DB_USERNAME=laravel_user
+  DB_PASSWORD=password
+  ```
 
-1. Run migration
-    ```
-    php artisan migrate
-    ```
-    
-1. Run seeder
-    ```
-    php artisan db:seed
-    ```
-    this command will create 2 users (admin and normal user):
-     > email: admin@gmail.com , password: password
+- **Generate an application key:**
+  ```bash
+  php artisan key:generate
+  ```
 
-     > email: user@gmail.com , password: password 
+### 4. **Set Up Nginx**
+- **Create a new Nginx configuration file:**
+  ```bash
+  sudo nano /etc/nginx/sites-available/laravel
+  ```
 
-1. Run server 
-    > for valet users visit `velflix.test` in your favorite browser
-   
-    ```sh
-    php artisan serve
-    ```  
+- **Add the following configuration:**
+  ```nginx
+  server {
+      listen 80;
+      server_name your_domain_or_IP;
+      root /var/www/html/your-laravel-project/public;
+
+      index index.php index.html index.htm index.nginx-debian.html;
+
+      location / {
+          try_files $uri $uri/ /index.php?$query_string;
+      }
+
+      location ~ \.php$ {
+          include snippets/fastcgi-php.conf;
+          fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+          fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+          include fastcgi_params;
+      }
+
+      location ~ /\.ht {
+          deny all;
+      }
+  }
+  ```
+
+- **Enable the configuration and restart Nginx:**
+  ```bash
+  sudo ln -s /etc/nginx/sites-available/laravel /etc/nginx/sites-enabled/
+  sudo nginx -t
+  sudo systemctl restart nginx
+  ```
+
+### 5. **Set Up SSL with Certbot**
+- **Install Certbot and the Nginx plugin:**
+  ```bash
+  sudo apt install certbot python3-certbot-nginx -y
+  ```
+
+- **Obtain and install the SSL certificate:**
+  ```bash
+  sudo certbot --nginx -d your_domain_or_IP
+  ```
+
+- **Follow the prompts to configure the SSL certificate.**
+
+### 6. **Set Up Permissions**
+- **Give Nginx ownership of the Laravel directory:**
+  ```bash
+  sudo chown -R www-data:www-data /var/www/html/your-laravel-project
+  sudo chmod -R 755 /var/www/html/your-laravel-project
+  ```
+
+### 7. **Finalize the Laravel Setup**
+- **Run migrations:**
+  ```bash
+  php artisan migrate
+  ```
+
+- **Optimize Laravel:**
+  ```bash
+  php artisan optimize
+  ```
+
+
 
 1. Visit `localhost:8000` in your favorite browser.     
 
